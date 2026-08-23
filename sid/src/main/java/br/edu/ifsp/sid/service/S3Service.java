@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -18,6 +19,9 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 public class S3Service {
     
     private final S3Client s3Client;
+    
+    @Value("${cloud.aws.s3.bucket-name}")
+    private String bucketName;
 
     public S3Service(S3Client s3Client) {
         this.s3Client = s3Client;
@@ -36,7 +40,7 @@ public class S3Service {
         var imageKey = UUID.randomUUID().toString();
         
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-        .bucket("sid-bucket")
+        .bucket(bucketName)
         .key(imageKey)
         .contentType(image.getContentType())
         .build();
@@ -45,13 +49,13 @@ public class S3Service {
             RequestBody.fromInputStream(image.getInputStream(), image.getSize())
         );
 
-        return s3Client.utilities().getUrl(b -> b.bucket("sid-bucket").key(imageKey)).toExternalForm();
+        return s3Client.utilities().getUrl(b -> b.bucket(bucketName).key(imageKey)).toExternalForm();
 
     }
 
     public List<ImageResponse> listAllImages() {
     ListObjectsV2Request request = ListObjectsV2Request.builder()
-            .bucket("sid-bucket")
+            .bucket(bucketName)
             .build();
 
     ListObjectsV2Response response = s3Client.listObjectsV2(request);
@@ -61,7 +65,7 @@ public class S3Service {
                 String key = s3Object.key();
                 // Generate the S3 URL for each object
                 String url = s3Client.utilities()
-                        .getUrl(b -> b.bucket("sid-bucket").key(key))
+                        .getUrl(b -> b.bucket(bucketName).key(key))
                         .toExternalForm();
                 return new ImageResponse(key, url);
             })
