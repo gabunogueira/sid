@@ -6,13 +6,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import br.edu.ifsp.sid.dto.ImageResponse;
 import br.edu.ifsp.sid.service.S3Service;
 
 @RestController
@@ -26,15 +26,14 @@ public class S3Controller {
     }
 
     @GetMapping
-    public ResponseEntity<List<String>> listBuckets(){
-        var names = s3Service.listBuckets();
+    public ResponseEntity<List<ImageResponse>> listAllImages(){
+        var names = s3Service.listAllImagesWithPresignedUrls();
         return ResponseEntity.status(HttpStatus.OK).body(names);
     }
 
-    @PutMapping(value = "/variants/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> updateImgVariant(
-        @RequestPart("image") MultipartFile image,
-        @RequestParam Long id
+        @RequestPart("image") MultipartFile image
     ){
         String imgUrl;
 

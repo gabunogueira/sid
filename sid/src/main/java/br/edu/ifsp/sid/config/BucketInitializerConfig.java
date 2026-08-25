@@ -37,7 +37,7 @@ public class BucketInitializerConfig {
                 throw new IllegalStateException("Critical dependency missing: Bucket unavailable", e);
             }
             catch (BucketAlreadyOwnedByYouException e) {
-                log.info("Bucket already owned by you " + bucketName);
+                log.info("Bucket '{}' already owned by you ", bucketName);
             }
 
         };

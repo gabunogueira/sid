@@ -1,6 +1,7 @@
 package br.edu.ifsp.sid.service;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
@@ -11,21 +12,27 @@ import org.springframework.web.multipart.MultipartFile;
 import br.edu.ifsp.sid.dto.ImageResponse;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
-import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 
 @Service
 public class S3Service {
     
     private final S3Client s3Client;
+    private final S3Presigner s3Presigner;
     
     @Value("${cloud.aws.s3.bucket-name}")
     private String bucketName;
 
-    public S3Service(S3Client s3Client) {
+
+    public S3Service(S3Client s3Client, S3Presigner s3Presigner) {
         this.s3Client = s3Client;
+        this.s3Presigner = s3Presigner;
     }
+
 
     public List<String> listBuckets () {
         var response = s3Client.listBuckets();
@@ -53,24 +60,32 @@ public class S3Service {
 
     }
 
-    public List<ImageResponse> listAllImages() {
-    ListObjectsV2Request request = ListObjectsV2Request.builder()
-            .bucket(bucketName)
-            .build();
+    public String generatePresignedUrl(String key) {
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .build();
 
-    ListObjectsV2Response response = s3Client.listObjectsV2(request);
+        GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
+                .signatureDuration(Duration.ofMinutes(60)) // URL valid for 60 minutes
+                .getObjectRequest(getObjectRequest)
+                .build();
 
-    return response.contents().stream()
-            .map(s3Object -> {
-                String key = s3Object.key();
-                // Generate the S3 URL for each object
-                String url = s3Client.utilities()
-                        .getUrl(b -> b.bucket(bucketName).key(key))
-                        .toExternalForm();
-                return new ImageResponse(key, url);
-            })
-            .toList();
+        return s3Presigner.presignGetObject(presignRequest).url().toExternalForm();
     }
 
+
+    public List<ImageResponse> listAllImagesWithPresignedUrls() {
+        ListObjectsV2Request listRequest = ListObjectsV2Request.builder()
+                .bucket(bucketName)
+                .build();
+
+        return s3Client.listObjectsV2(listRequest).contents().stream()
+                .map(s3Object -> new ImageResponse(
+                        s3Object.key(),
+                        generatePresignedUrl(s3Object.key())
+                ))
+                .toList();
+    }
 
 }

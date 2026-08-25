@@ -11,7 +11,7 @@ type ImageItem = {
   uploadedAt?: string
 }
 
-const API_URL = '/bucket'
+const API_URL = import.meta.env.VITE_API_URL || '/bucket'
 
 function normalizeImages(payload: unknown): ImageItem[] {
   const data = Array.isArray(payload)
