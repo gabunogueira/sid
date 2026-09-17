@@ -44,12 +44,13 @@ public class S3Service {
 
 
     public String uploadImage(MultipartFile image) throws IOException {
-        var imageKey = UUID.randomUUID().toString();
+        var contentType = image.getContentType();
+        var imageKey = UUID.randomUUID().toString() + contentType.replace("image/",".") ;
         
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
         .bucket(bucketName)
         .key(imageKey)
-        .contentType(image.getContentType())
+        .contentType(contentType)
         .build();
 
         s3Client.putObject(putObjectRequest, 
